@@ -81,7 +81,7 @@ data:
     <link rel="SHORTCUT ICON" href="https://www.spc.int/sites/default/files/SPC-logo-transparent.png" type="image/x-icon">
     {% endblock %}
 
-    {% block title %} Pacific Hub {% endblock %}
+    {% block title %} Analytics Hub {% endblock %}
 
     {% block stylesheet %}
     {{ super() }}
@@ -378,7 +378,7 @@ data:
           <div class="ms-CommandButton ms-CommandButton--pivot site-name-cmd">
             <a class="ms-CommandButton-button" href="https://hub.example.com/">
               <span class="site-name ms-CommandButton-label">
-                Digital Earth Pacific Analytics Hub
+                Digital Earth Analytics Hub
               </span>
             </a>
           </div>
@@ -404,7 +404,7 @@ data:
         </div>
         <div class="banner-item">
           <p>
-            This is the <a href="https://example.com">Digital Earth Pacific</a> Analytics Hub, 
+            This is the <a href="https://example.com">Digital Earth</a> Analytics Hub, 
             a computing environment that allows users to process and analyse massive earth observations datasets.
           </p>
         </div>

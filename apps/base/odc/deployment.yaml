@@ -69,9 +69,9 @@ spec:
         - name: PYTHONPATH
           value: "/env/config"
         - name: DATACUBE_OWS_CFG
-          value: ows_config.pacific_ows.ows_cfg
+          value: ows_config.ows.ows_cfg
         - name: WMS_CONFIG_PATH
-          value: /env/config/ows_config/pacific_ows.py
+          value: /env/config/ows_config/ows.py
         - name: PROXY_FIX
           value: "yes"
         - name: AWS_NO_SIGN_REQUEST

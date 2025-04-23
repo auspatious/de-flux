@@ -4,13 +4,13 @@ metadata:
   name: etc-ssh-sshconfigd
   namespace: hub
 data:
-  01-dep-deploy-key: |
+  01-deploy-key: |
     -----BEGIN OPENSSH PRIVATE KEY-----
     FAKEPRIVATEKEY
     -----END OPENSSH PRIVATE KEY-----
   01-github-ssh-deploy.conf: |
     Host github.com
-      IdentityFile /etc/ssh/ssh_config.d/01-dep-deploy-key
+      IdentityFile /etc/ssh/ssh_config.d/01-deploy-key
     GlobalKnownHostsFile /etc/ssh/ssh_config.d/ssh_known_hosts
   ssh_known_hosts: |
     github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl

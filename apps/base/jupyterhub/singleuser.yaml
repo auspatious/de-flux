@@ -10,8 +10,8 @@ data:
     echo "Running post-start hook"
 
     # Sync the examples folder, but don't stop the launch if this fails.
-    echo "Grabbing depal"
-    /srv/conda/envs/notebook/bin/gitpuller https://github.com/digitalearthpacific/depal main /home/jovyan/depal || true
+    echo "Grabbing notebooks"
+    /srv/conda/envs/notebook/bin/gitpuller https://github.com/exampleorg/notebookrepo main /home/jovyan/examples || true
 
     echo "Setting markdown config"
     # Ensure that markdown files are rendered by default.
