@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: terria
+resources:
+  - ../../base/terria
+patches:
+  - path: ingress.yaml
+    target:
+      kind: Ingress
+      name: terria
+      namespace: terria
+images:
+  - name: ghcr.io/example/org-maps
+    newName: ghcr.io/example/org-maps # {"$imagepolicy": "flux-system:org-maps:name"}
+    newTag: "0.2.3" # {"$imagepolicy": "flux-system:org-maps:tag"}

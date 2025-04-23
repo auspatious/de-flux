@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tileserver
+  namespace: tileserver
+spec:
+  selector:
+    matchLabels:
+      app: tileserver
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: tileserver
+    spec:
+      containers:
+        - name: tileserver
+          image: ghcr.io/example/org-tileserver:0.1.4 # {"$imagepolicy": "flux-system:tileserver"}
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--config"
+            - "/data/config.json"
+          resources:
+            limits:
+              cpu: 2
+              memory: 3Gi
+            requests:
+              cpu: 1
+              memory: 2Gi
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP

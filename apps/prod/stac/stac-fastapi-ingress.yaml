@@ -1,0 +1,48 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stac-ingress
+  namespace: stac
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    external-dns.alpha.kubernetes.io/hostname: stac.prod.example.com
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: stac.prod.example.com
+    http:
+      paths:
+      - path: /
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: stac-fastapi
+            port:
+              number: 8080
+  - host: stac.example.com
+    http:
+      paths:
+      - path: /
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: stac-fastapi
+            port:
+              number: 8080
+  - host: stac-browser.prod.example.com
+    http:
+      paths:
+      - path: /
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: stac-browser
+            port:
+              number: 8080
+  tls:
+  - hosts:
+    - stac.example.com
+    - stac.prod.example.com
+    - stac-browser.prod.example.com
+    secretName: stac-ingress

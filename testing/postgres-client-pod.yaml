@@ -1,0 +1,11 @@
+# A postgres client pod that can be used to connect to the postgres server
+apiVersion: v1
+kind: Pod
+metadata:
+  name: postgres-client-pod
+  namespace: db
+spec:
+  containers:
+    - name: postgres-client
+      image: postgres:16.3-alpine
+      command: ["/bin/sh", "-ec", "sleep 1000"]

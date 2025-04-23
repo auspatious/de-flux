@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: terria
+  namespace: terria
+spec:
+  selector:
+    matchLabels:
+      app: terria
+  template:
+    metadata:
+      labels:
+        app: terria
+    spec:
+      containers:
+        - name: terria
+          image: ghcr.io/example/org-maps:0.2.2-12-ge1822d9  # {"$imagepolicy": "flux-system:org-maps"}
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 2
+              memory: 2Gi
+            requests:
+              cpu: 1
+              memory: 1Gi
+          ports:
+            - name: http
+              containerPort: 3001
+              protocol: TCP
+          env:
+            - name: AWS_BUCKET_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: terria-bucket-creds
+                  key: bucket-name
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: terria-bucket-creds
+                  key: access-key
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: terria-bucket-creds
+                  key: secret-key

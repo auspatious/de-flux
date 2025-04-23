@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: stac-fastapi
+  namespace: stac
+spec:
+  selector:
+    app: stac-fastapi
+  ports:
+    - port: 8080
+      targetPort: 8080

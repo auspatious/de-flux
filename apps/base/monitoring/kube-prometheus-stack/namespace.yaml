@@ -1,0 +1,7 @@
+# This is created in Terraform
+# apiVersion: v1
+# kind: Namespace
+# metadata:
+#   name: monitoring
+#   labels:
+#     app.kubernetes.io/component: monitoring

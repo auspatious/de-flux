@@ -1,0 +1,38 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stac-ingress
+  namespace: stac
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    external-dns.alpha.kubernetes.io/hostname: stac.dep.datacube.world
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: stac.dep.datacube.world
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: stac-fastapi
+                port:
+                  number: 8080
+    - host: stac-browser.dep.datacube.world
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: stac-browser
+                port:
+                  number: 8080
+  tls:
+    - hosts:
+        - stac.dep.datacube.world
+        - stac-browser.dep.datacube.world
+      secretName: stac-ingress

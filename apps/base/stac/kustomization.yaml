@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: stac
+resources:
+  - ingress.yaml
+  - stac-browser-deployment.yaml
+  - stac-browser-service.yaml
+  - stac-fastapi-deployment.yaml
+  - stac-fastapi-service.yaml

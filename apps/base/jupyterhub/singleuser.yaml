@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-etc-singleuser
+  namespace: hub
+data:
+  k8s-lifecycle-hook-post-start.sh: |
+    #!/bin/bash
+    set -e
+    echo "Running post-start hook"
+
+    # Sync the examples folder, but don't stop the launch if this fails.
+    echo "Grabbing depal"
+    /srv/conda/envs/notebook/bin/gitpuller https://github.com/digitalearthpacific/depal main /home/jovyan/depal || true
+
+    echo "Setting markdown config"
+    # Ensure that markdown files are rendered by default.
+    if [ ! -f ~/.jupyter/lab/user-settings/\@jupyterlab/docmanager-extension/plugin.jupyterlab-settings ]; then
+        mkdir -p ~/.jupyter/lab/user-settings/\@jupyterlab/docmanager-extension/ || true
+        echo '{defaultViewers: {markdown: "Markdown Preview"}}' > ~/.jupyter/lab/user-settings/\@jupyterlab/docmanager-extension/plugin.jupyterlab-settings
+    fi
+
+    echo "Disabling news"
+    mkdir -p /home/jovyan/.jupyter/lab/user-settings/@jupyterlab/apputils-extension/
+    cat <<EOF > /home/jovyan/.jupyter/lab/user-settings/@jupyterlab/apputils-extension/notification.jupyterlab-settings
+    {"fetchNews": "false"}
+    EOF
+
+    echo "Setting the Python language server for VS Code"
+    mkdir -p ~/.local/share/code-server/User/ || true
+    if [ -f ~/.local/share/code-server/User/settings.json ]; then
+        # Update the file
+        jq '. + {"python.languageServer": "Jedi"}' ~/.local/share/code-server/User/settings.json > /tmp/temp.json || true
+        mv /tmp/temp.json ~/.local/share/code-server/User/settings.json || true
+    else
+        # Create the file
+        echo '{"python.languageServer": "Jedi"}' > ~/.local/share/code-server/User/settings.json || true
+    fi
+
+    echo "Removing lost+found"
+    # Remove empty lost+found directories
+    rmdir ~/lost+found/ || true

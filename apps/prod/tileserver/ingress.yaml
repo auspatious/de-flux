@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tileserver
+  namespace: tileserver
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    external-dns.alpha.kubernetes.io/hostname: tileserver.prod.example.com
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: tileserver.prod.example.com
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: tileserver
+                port:
+                  number: 8080
+  tls:
+    - hosts:
+        - tileserver.prod.example.com
+      secretName: tileserver-ingress

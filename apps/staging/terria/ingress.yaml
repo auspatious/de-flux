@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: terria
+  namespace: terria
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    external-dns.alpha.kubernetes.io/hostname: maps.staging.example.com
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: maps.staging.example.com
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: terria
+                port:
+                  number: 3001
+  tls:
+    - hosts:
+        - maps.staging.example.com
+      secretName: terria-ingress

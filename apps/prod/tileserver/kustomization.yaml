@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: tileserver
+resources:
+  - ../../base/tileserver
+patches:
+  - path: ingress.yaml
+    target:
+      kind: Ingress
+      name: tileserver
+      namespace: tileserver
+images:
+  - name: ghcr.io/example/org-tileserver
+    newName: ghcr.io/example/org-tileserver # {"$imagepolicy": "flux-system:tileserver:name"}
+    newTag: 0.1.6 # {"$imagepolicy": "flux-system:tileserver:tag"}

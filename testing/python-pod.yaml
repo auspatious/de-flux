@@ -1,0 +1,12 @@
+# A postgres client pod that can be used to connect to the postgres server
+apiVersion: v1
+kind: Pod
+metadata:
+  name: python-pod
+  namespace: argo
+spec:
+  serviceAccountName: open-data-bucket-writer
+  containers:
+    - name: python
+      image: python:3.8
+      command: ["/bin/sh", "-ec", "sleep 1000"]

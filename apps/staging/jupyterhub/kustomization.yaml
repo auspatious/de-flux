@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hub
+resources:
+  - ../../base/jupyterhub
+patches:
+  - path: jupyterhub-release.yaml
+    target:
+      kind: HelmRelease
+      name: jupyterhub
+      namespace: hub
+  - path: ingress.yaml
+    target:
+      kind: HelmRelease
+      name: jupyterhub
+      namespace: hub
+images:
+  - name: ghcr.io/example/org-analytics-lab-image
+    newName: ghcr.io/example/org-analytics-lab-image # {"$imagepolicy": "flux-system:jupyter:name"}
+    newTag: "0.0.3" # {"$imagepolicy": "flux-system:jupyter:tag"}

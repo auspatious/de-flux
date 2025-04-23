@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: datacube-ows
+  namespace: odc
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    external-dns.alpha.kubernetes.io/hostname: ows-uncached.prod.example.com
+
+    nginx.ingress.kubernetes.io/use-forwarded-headers: "false"
+    nginx.ingress.kubernetes.io/compute-full-forwarded-for: "false"
+    nginx.ingress.kubernetes.io/preserve-host: "false"
+
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Host $http_x_public_host;
+      proxy_set_header X-Forwarded-Host $http_x_public_host;
+
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: ows-uncached.prod.example.com
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: datacube-ows
+                port:
+                  number: 8000
+  tls:
+    - hosts:
+        - ows-uncached.prod.example.com
+      secretName: ows-ingress

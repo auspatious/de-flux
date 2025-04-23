@@ -1,0 +1,32 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: argo-workflows
+  namespace: argo
+spec:
+  releaseName: argo-workflows
+  chart:
+    spec:
+      chart: argo-workflows
+      version: "0.40.x"
+      sourceRef:
+        kind: HelmRepository
+        name: argo-repository
+  interval: 5m
+  values:
+    singleNamespace: true
+    server:
+      logging:
+        # -- Set the logging level (one of: `debug`, `info`, `warn`, `error`)
+        level: info
+        # -- Set the glog logging level
+        globallevel: "0"
+    workflow:
+      serviceAccount:
+        create: true
+        name: "argo-workflow-sa"
+      annotations:
+        workflows.argoproj.io/rbac-rule: true
+        workflows.argoproj.io/rbac-rule-precedence: "1"
+      rbac:
+        create: true

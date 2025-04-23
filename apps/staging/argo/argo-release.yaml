@@ -1,0 +1,79 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: argo-workflows
+  namespace: argo
+spec:
+  values:
+    # TODO (maybe): Deploy the Argo events framework
+    server:
+      ingress:
+        enabled: true
+        ingressClassName: nginx
+        annotations:
+          cert-manager.io/cluster-issuer: letsencrypt-production
+          external-dns.alpha.kubernetes.io/hostname: argo.staging.example.com
+        hosts:
+        - argo.staging.example.com
+        tls:
+        - hosts:
+          - argo.staging.example.com
+          secretName: argo-ingress
+      extraArgs:
+      - "--auth-mode=sso"
+      logging:
+        # -- Set the logging level (one of: `debug`, `info`, `warn`, `error`)
+        level: debug
+        # -- Set the glog logging level 0 or 9
+        globallevel: "9"
+      sso:
+        enabled: true
+        issuer: "https://exampleorg-staging.eu.auth0.com/"
+        # Name of a secret and a key in it to retrieve the app OIDC client ID from.
+        clientId:
+          name: argo-client-secret
+          key: client-id
+        # Name of a secret and a key in it to retrieve the app OIDC client secret from.
+        clientSecret:
+          name: argo-client-secret
+          key: client-secret
+        # The OIDC redirect URL. Should be in the form <argo-root-url>/oauth2/callback.
+        redirectUrl: https://argo.staging.example.com/oauth2/callback
+        scopes:
+        - email
+        - groups
+        - profile
+        - org-groups
+        customGroupClaimName: "org-groups"
+        rbac:
+          enabled: true
+      serviceAccount:
+        create: false
+        name: argo-artifact-read-write-sa
+    artifactRepository:
+      archiveLogs: true
+      s3:
+        bucket: argo-artifacts-org-staging
+        region: us-west-2
+        endpoint: s3.us-west-2.amazonaws.com
+        accessKeySecret:
+          name: argo-artifact-read-write
+          key: access-key
+        secretKeySecret:
+          name: argo-artifact-read-write
+          key: secret-key
+    controller:
+      persistence:
+        postgresql:
+          host: db-endpoint.db.svc.cluster.local
+          port: 5432
+          database: argo
+          tableName: workflows
+          userNameSecret:
+            name: argo
+            key: username
+          passwordSecret:
+            name: argo
+            key: password
+          ssl: true
+          sslMode: require

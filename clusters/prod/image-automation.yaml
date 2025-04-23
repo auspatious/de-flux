@@ -1,0 +1,109 @@
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageUpdateAutomation
+metadata:
+  name: flux-system
+  namespace: flux-system
+spec:
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        email: fluxcdbot@users.noreply.github.com
+        name: fluxcdbot
+      messageTemplate: "{{range .Changed.Changes}}{{print .OldValue}} -> {{println .NewValue}}{{end}}"
+    push:
+      branch: main
+  interval: 7m0s
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  update:
+    path: ./apps/prod
+    strategy: Setters
+# Tileserver
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImageRepository
+metadata:
+  name: tileserver
+  namespace: flux-system
+spec:
+  image: ghcr.io/example/org-tileserver
+  interval: 5m
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImagePolicy
+metadata:
+  name: tileserver
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: tileserver
+  policy:
+    semver:
+      range: 0.1.x
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImagePolicy
+metadata:
+  name: tileserver-bleedingedge
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: tileserver
+  filterTags:
+    pattern: "^(.*?-[0-9]+)-[^-]+$" # Stupid regex
+    # pattern: "^(\\d+\\.\\d+\\.\\d+(?:-\\d+)?)" # Smart regex, but stupid semver
+    extract: "$1"
+  policy:
+    semver:
+      range: 0.1.x-0
+# Jupyterhub
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImageRepository
+metadata:
+  name: jupyterhub
+  namespace: flux-system
+spec:
+  image: ghcr.io/example/org-analytics-lab-image
+  interval: 5m
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImagePolicy
+metadata:
+  name: jupyterhub
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: jupyterhub
+  filterTags:
+    pattern: "\\b\\d{4}\\.\\d{2}\\.\\d{2}\\b"
+  policy:
+    alphabetical:
+      order: asc
+# Maps (Terria)
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImageRepository
+metadata:
+  name: org-maps
+  namespace: flux-system
+spec:
+  image: ghcr.io/example/org-maps
+  interval: 5m
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta2
+kind: ImagePolicy
+metadata:
+  name: org-maps
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: org-maps
+  policy:
+    semver:
+      range: x.x.x

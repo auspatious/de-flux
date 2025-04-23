@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: datacube-ows
+  namespace: odc
+spec:
+  replicas: 16
+  template:
+    spec:
+      containers:
+      - name: datacube-ows
+        image: ghcr.io/example/datacube-ows:0.0.1-110-g00f0e22
+        env:
+        - name: ODC_DEFAULT_DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: odcread-secret
+              key: username
+        - name: ODC_DEFAULT_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: odcread-secret
+              key: password
