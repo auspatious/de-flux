@@ -28,7 +28,7 @@ spec:
         globallevel: "9"
       sso:
         enabled: true
-        issuer: "https://exampleorg-staging.eu.auth0.com/"
+        issuer: "https://example.com/"  #sso issuer auth0 or cognito 
         # Name of a secret and a key in it to retrieve the app OIDC client ID from.
         clientId:
           name: argo-client-secret
@@ -41,10 +41,10 @@ spec:
         redirectUrl: https://argo.staging.example.com/oauth2/callback
         scopes:
         - email
-        - groups
+        - openid
         - profile
-        - org-groups
-        customGroupClaimName: "org-groups"
+        - groups
+        customGroupClaimName: "groups" # Use "cognito:groups" for AWS Cognito
         rbac:
           enabled: true
       serviceAccount:
