@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: datacube-delete-product
+  namespace: argo
+spec:
+  entrypoint: datacube-delete-product
+  podGC:
+    strategy: OnWorkflowCompletion
+  ttlStrategy:
+    secondsAfterCompletion: 300
+  arguments:
+    parameters:
+      - name: product
+        value: example_product
+  templates:
+    - name: datacube-delete-product
+      metadata:
+        labels:
+          app: argo-delete-product
+      inputs:
+        parameters:
+          - name: product
+            value: "{{workflow.parameters.product}}"
+      container:
+        name: indexing-container
+        image: ghcr.io/digitalearthpacific/datacube:latest
+        command: ["bash", "-c"]
+        args:
+          - |
+            datacube product delete --force {{ inputs.parameters.product }}
+        env:
+          - name: PRODUCT_NAME
+            value: "{{inputs.parameters.product}}"
+          # Database stuff
+          - name: ODC_DEFAULT_DB_HOSTNAME
+            value: "db-endpoint.db.svc.cluster.local"
+          - name: ODC_DEFAULT_DB_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: odc
+                key: username
+          - name: ODC_DEFAULT_DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: odc
+                key: password
+          - name: ODC_DEFAULT_DB_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: odc
+                key: username
+          - name: ODC_DEFAULT_INDEX_DRIVER
+            value: "postgis"

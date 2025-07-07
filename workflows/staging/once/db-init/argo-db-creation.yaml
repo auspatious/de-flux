@@ -1,0 +1,65 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: argo-db-creation-
+spec:
+  entrypoint: argo-db-creation
+  serviceAccountName: argo-workflow-sa
+  podGC:
+    strategy: OnWorkflowSuccess
+  templates:
+    - name: argo-db-creation
+      script:
+        image: postgres:16.3-alpine
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+        command: [bash]
+        source: |
+          # Author: Alex Leith
+          # Date: 2024-06-04
+
+          random-string()
+          {
+              cat /dev/urandom | tr -dc '[:alpha:]' | fold -w ${1:-32} | head -n 1
+          }
+
+          NEW_DB=$USER
+
+          echo "Creating login role"
+          createuser $NEW_DB || true
+
+          echo "Resetting user password"
+          psql -d postgres -c "ALTER USER $NEW_DB WITH PASSWORD '$PASS'"
+
+          echo "Creating new DB as new user"
+          createdb $NEW_DB || true
+          psql -d $NEW_DB -c "GRANT $NEW_DB TO $PGUSER"
+          psql -d $NEW_DB -c "ALTER DATABASE $NEW_DB OWNER TO $NEW_DB"
+
+        env:
+          - name: PGPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: db-admin
+                key: postgres-password
+          - name: PGUSER
+            valueFrom:
+              secretKeyRef:
+                name: db-admin
+                key: postgres-username
+          - name: PGHOST
+            value: "db-endpoint.db.svc.cluster.local"
+          - name: PGDATABASE
+            value: dep
+          - name: USER
+            valueFrom:
+              secretKeyRef:
+                name: argo
+                key: username
+          - name: PASS
+            valueFrom:
+              secretKeyRef:
+                name: argo
+                key: password

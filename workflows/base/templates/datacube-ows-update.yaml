@@ -1,0 +1,70 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: datacube-ows-update
+  namespace: argo
+spec:
+  entrypoint: ows-update
+  podGC:
+    strategy: OnWorkflowCompletion
+  ttlStrategy:
+    secondsAfterCompletion: 300
+  arguments:
+    parameters:
+    - name: products
+      value: sdb
+  templates:
+  - name: ows-update
+    metadata:
+      labels:
+        app: "{{workflow.name}}"
+    inputs:
+      parameters:
+      - name: products
+        value: "{{ workflow.parameters.products }}"
+    container:
+      image: ghcr.io/digitalearthpacific/datacube-ows:latest
+      imagePullPolicy: Always
+      command: [ "bash", "-c" ]
+      args:
+      - |
+        datacube-ows-update --version
+        datacube --version
+        echo "Updating ows ranges"
+        for product in "{{inputs.parameters.products}}"; do
+            if [ $product == "--all" ]; then
+                echo "Updating all"
+                datacube-ows-update
+            else
+                echo "Updating $product"
+                datacube-ows-update $product
+            fi
+        done
+      env:
+      # Database stuff
+      - name: ODC_DEFAULT_DB_HOSTNAME
+        value: "db-endpoint.db.svc.cluster.local"
+      - name: ODC_DEFAULT_DB_USERNAME
+        valueFrom:
+          secretKeyRef:
+            name: odc
+            key: username
+      - name: ODC_DEFAULT_DB_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: odc
+            key: password
+      - name: ODC_DEFAULT_DB_DATABASE
+        valueFrom:
+          secretKeyRef:
+            name: odc
+            key: username
+      - name: ODC_DEFAULT_INDEX_DRIVER
+        value: "postgis"
+      # OWS config stuff
+      - name: PYTHONPATH
+        value: "/env/config"
+      - name: DATACUBE_OWS_CFG
+        value: ows_config.pacific_ows.ows_cfg
+      - name: WMS_CONFIG_PATH
+        value: /env/config/ows_config/pacific_ows.py

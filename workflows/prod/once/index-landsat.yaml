@@ -1,0 +1,95 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: landsat-index-
+  namespace: argo
+spec:
+  entrypoint: daily-landsat-workflow
+  podGC:
+    strategy: OnWorkflowCompletion
+  ttlStrategy:
+    secondsAfterCompletion: 10
+    secondsAfterSuccess: 5
+    secondsAfterFailure: 600
+  templates:
+    - name: daily-landsat-workflow
+      steps:
+        - - name: index-landsat-9
+            templateRef:
+              name: datacube-stac-indexer
+              template: stac-indexing
+            arguments:
+              parameters:
+                - name: catalog
+                  value: "https://earth-search.aws.element84.com/v1"
+                - name: collections
+                  value: "landsat-c2-l2"
+                - name: bbox
+                  value: "{{ item }}"
+                - name: datetime
+                  value: "2024-10-01/2024-11-30"
+                - name: arguments
+                  value: "--rename-product=ls9_c2l2_sr --options=\"query={\\\"platform\\\":{\\\"in\\\":[\\\"landsat-9\\\"]}}\""
+            withItems:
+              - "135.0,-30.0,180.0,15.0"
+              - "-180,-30.0,-120.0,15.0"
+
+        - - name: index-landsat-8
+            templateRef:
+              name: datacube-stac-indexer
+              template: stac-indexing
+            arguments:
+              parameters:
+                - name: catalog
+                  value: "https://earth-search.aws.element84.com/v1"
+                - name: collections
+                  value: "landsat-c2-l2"
+                - name: bbox
+                  value: "{{ item }}"
+                - name: datetime
+                  value: "2024-10-01/2024-11-30"
+                - name: arguments
+                  value: "--rename-product=ls8_c2l2_sr --options=\"query={\\\"platform\\\":{\\\"in\\\":[\\\"landsat-8\\\"]}}\""
+            withItems:
+              - "135.0,-30.0,180.0,15.0"
+              - "-180,-30.0,-120.0,15.0"
+
+        - - name: index-landsat-7
+            templateRef:
+              name: datacube-stac-indexer
+              template: stac-indexing
+            arguments:
+              parameters:
+                - name: catalog
+                  value: "https://earth-search.aws.element84.com/v1"
+                - name: collections
+                  value: "landsat-c2-l2"
+                - name: bbox
+                  value: "{{ item }}"
+                - name: datetime
+                  value: "2000-01-01/2000-12-31"
+                - name: arguments
+                  value: "--rename-product=ls7_c2l2_sr --options=\"query={\\\"platform\\\":{\\\"in\\\":[\\\"landsat-7\\\"]}}\""
+            withItems:
+              - "135.0,-30.0,180.0,15.0"
+              - "-180,-30.0,-120.0,15.0"
+
+        - - name: index-landsat-5
+            templateRef:
+              name: datacube-stac-indexer
+              template: stac-indexing
+            arguments:
+              parameters:
+                - name: catalog
+                  value: "https://earth-search.aws.element84.com/v1"
+                - name: collections
+                  value: "landsat-c2-l2"
+                - name: bbox
+                  value: "{{ item }}"
+                - name: datetime
+                  value: "1980-01-01/1985-12-31"
+                - name: arguments
+                  value: "--rename-product=ls5_c2l2_sr --options=\"query={\\\"platform\\\":{\\\"in\\\":[\\\"landsat-5\\\"]}}\""
+            withItems:
+              - "135.0,-30.0,180.0,15.0"
+              - "-180,-30.0,-120.0,15.0"
