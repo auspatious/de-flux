@@ -24,7 +24,7 @@ spec:
             value: "{{workflow.parameters.product}}"
       container:
         name: indexing-container
-        image: ghcr.io/digitalearthpacific/datacube:latest
+        image: opendatacube/datacube-index:latest
         command: ["bash", "-c"]
         args:
           - |

@@ -37,7 +37,7 @@ spec:
             value: "{{workflow.parameters.arguments}}"
       container:
         name: indexing
-        image: ghcr.io/digitalearthpacific/datacube:latest
+        image: opendatacube/datacube-index:latest
         command:
           - bash
         args:

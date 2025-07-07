@@ -9,7 +9,7 @@ spec:
   templates:
   - name: odc-db-creation
     script:
-      image: ghcr.io/digitalearthpacific/datacube-ows:0.0.1-70-g88fecd1
+      image: opendatacube/ows:latest
       resources:
         requests:
           memory: 500Mi
@@ -32,13 +32,11 @@ spec:
 
         # Initialise the ODC and OWS schemas
         export PYTHONPATH=/env/config
-        export DATACUBE_OWS_CFG=ows_config.pacific_ows.ows_cfg
+        export DATACUBE_OWS_CFG=ows_config.example.ows_cfg
         export OWS_CFG_DIR=/env/config/ows_config
 
         # datacube spindex create 3832
         # datacube spindex update 3832
-        # datacube spindex create 3857
-        # datacube spindex update 3857
         # datacube-ows-update --schema --read-role $READUSER --write-role $USER
 
         datacube -v system init

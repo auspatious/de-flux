@@ -23,7 +23,7 @@ spec:
       - name: products
         value: "{{ workflow.parameters.products }}"
     container:
-      image: ghcr.io/digitalearthpacific/datacube-ows:latest
+      image: opendatacube/ows:latest
       imagePullPolicy: Always
       command: [ "bash", "-c" ]
       args:
