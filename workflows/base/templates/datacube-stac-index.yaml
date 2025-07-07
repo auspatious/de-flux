@@ -1,0 +1,71 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: datacube-stac-indexer
+  namespace: argo
+spec:
+  entrypoint: stac-indexing
+  podGC:
+    strategy: OnWorkflowCompletion
+  ttlStrategy:
+    secondsAfterCompletion: 300
+  arguments:
+    parameters:
+      - name: catalog
+        value: "https://stac.staging.example.com"
+      - name: arguments
+        value: ""  # '--rename-product=ls8_c2l2_sr --options="query={\"platform\":{\"in\":[\"landsat-8\"]}}"'
+      - name: bbox
+        value: "-180.0,-70,180.0,70"
+      - name: datetime
+        value: "2025"
+      - name: collections
+        value: "example-collection"
+  templates:
+    - name: stac-indexing
+      inputs:
+        parameters:
+          - name: catalog
+            value: "{{workflow.parameters.catalog}}"
+          - name: collections
+            value: "{{workflow.parameters.collections}}"
+          - name: bbox
+            value: "{{workflow.parameters.bbox}}"
+          - name: datetime
+            value: "{{workflow.parameters.datetime}}"
+          - name: arguments
+            value: "{{workflow.parameters.arguments}}"
+      container:
+        name: indexing
+        image: opendatacube/datacube-index:latest
+        command:
+          - bash
+        args:
+          - "-c"
+          - >-
+            stac-to-dc
+            --catalog-href={{inputs.parameters.catalog}}
+            --collections={{inputs.parameters.collections}}
+            --bbox={{inputs.parameters.bbox}}
+            --datetime={{inputs.parameters.datetime}}
+            {{inputs.parameters.arguments}}
+        env:
+          - name: ODC_DEFAULT_DB_HOSTNAME
+            value: "db-endpoint.db.svc.cluster.local"
+          - name: ODC_DEFAULT_DB_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: odc
+                key: username
+          - name: ODC_DEFAULT_DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: odc
+                key: password
+          - name: ODC_DEFAULT_DB_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: odc
+                key: username
+          - name: ODC_DEFAULT_INDEX_DRIVER
+            value: "postgis"

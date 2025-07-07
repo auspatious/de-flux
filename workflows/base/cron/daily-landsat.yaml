@@ -1,0 +1,83 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: daily-landsat
+  namespace: argo
+spec:
+  schedule: "0 0 * * *"  # This sets the schedule to run daily at midnight
+  concurrencyPolicy: "Replace"
+  startingDeadlineSeconds: 0
+  workflowSpec:
+    entrypoint: daily-landsat-workflow
+    podGC:
+      strategy: OnWorkflowCompletion
+    ttlStrategy:
+      secondsAfterCompletion: 10
+      secondsAfterSuccess: 5
+      secondsAfterFailure: 600
+    parallelism: 1
+    templates:
+      - name: daily-landsat-workflow
+        steps:
+          - - name: generate-daterange
+              template: gen-date
+
+          - - name: index-landsat-9
+              templateRef:
+                name: datacube-stac-indexer
+                template: stac-indexing
+              arguments:
+                parameters:
+                  - name: catalog
+                    value: "https://earth-search.aws.element84.com/v1"
+                  - name: collections
+                    value: "landsat-c2-l2"
+                  - name: bbox
+                    value: "{{ item }}"
+                  - name: datetime
+                    value: "{{ steps.generate-daterange.outputs.result }}"
+                  - name: arguments
+                    value: "--rename-product=ls9_c2l2_sr --options=\"query={\\\"platform\\\":{\\\"in\\\":[\\\"landsat-9\\\"]}}\""
+              withItems:
+                - "135.0,-30.0,180.0,15.0"
+                - "-180,-30.0,-120.0,15.0"
+
+          - - name: index-landsat-8
+              templateRef:
+                name: datacube-stac-indexer
+                template: stac-indexing
+              arguments:
+                parameters:
+                  - name: catalog
+                    value: "https://earth-search.aws.element84.com/v1"
+                  - name: collections
+                    value: "landsat-c2-l2"
+                  - name: bbox
+                    value: "{{ item }}"
+                  - name: datetime
+                    value: "{{ steps.generate-daterange.outputs.result }}"
+                  - name: arguments
+                    value: "--rename-product=ls8_c2l2_sr --options=\"query={\\\"platform\\\":{\\\"in\\\":[\\\"landsat-8\\\"]}}\""
+              withItems:
+                - "135.0,-30.0,180.0,15.0"
+                - "-180,-30.0,-120.0,15.0"
+
+      - name: gen-date
+        script:
+          image: python:3.8
+          command: [python]
+          source: |
+            import datetime
+            import json
+            import os
+            import sys
+            from typing import Any, Dict
+
+            def main() -> None:
+                today = datetime.datetime.utcnow().date()
+                five_days_ago = today - datetime.timedelta(days=5)
+                daterange = f"{five_days_ago.strftime('%Y-%m-%d')}/{today.strftime('%Y-%m-%d')}"
+                print(daterange)
+
+            if __name__ == "__main__":
+                main()

@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: datacube-product-sync
+  namespace: argo
+spec:
+  entrypoint: product-sync
+  podGC:
+    strategy: OnWorkflowSuccess
+  ttlStrategy:
+    secondsAfterCompletion: 300
+  arguments:
+    parameters:
+    - name: product-list
+      value: "https://raw.githubusercontent.com/example-org/example-repo/main/products.csv"
+  templates:
+  - name: product-sync
+    inputs:
+      parameters:
+      - name: product-list
+        value: "{{workflow.parameters.product-list}}"
+    container:
+      name: indexing-container
+      image: opendatacube/datacube-index:latest
+      command:
+      - bash
+      args:
+      - "-c"
+      - |
+        datacube --version
+        dc-sync-products {{inputs.parameters.product-list}} --update-if-exists
+      env:
+      - name: ODC_DEFAULT_DB_HOSTNAME
+        value: "db-endpoint.db.svc.cluster.local"
+      - name: ODC_DEFAULT_DB_USERNAME
+        valueFrom:
+          secretKeyRef:
+            name: odc
+            key: username
+      - name: ODC_DEFAULT_DB_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: odc
+            key: password
+      - name: ODC_DEFAULT_DB_DATABASE
+        valueFrom:
+          secretKeyRef:
+            name: odc
+            key: username
+      - name: ODC_DEFAULT_INDEX_DRIVER
+        value: "postgis"

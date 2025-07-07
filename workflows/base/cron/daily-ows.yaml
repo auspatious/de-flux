@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: daily-ows
+  namespace: argo
+spec:
+  schedule: "0 1 * * *"
+  concurrencyPolicy: "Replace"
+  startingDeadlineSeconds: 0
+  workflowSpec:
+    entrypoint: daily-ows-workflow
+    podGC:
+      strategy: OnWorkflowCompletion
+    ttlStrategy:
+      secondsAfterCompletion: 10
+      secondsAfterSuccess: 5
+      secondsAfterFailure: 600
+    parallelism: 1
+    templates:
+      - name: daily-ows-workflow
+        steps:
+          - - name: update-ows
+              templateRef:
+                name: datacube-ows-update
+                template: ows-update
+              arguments:
+                parameters:
+                  - name: products
+                    value: "--all"

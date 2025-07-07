@@ -1,0 +1,116 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: odc-db-creation-
+spec:
+  entrypoint: odc-db-creation
+  podGC:
+    strategy: OnWorkflowSuccess
+  templates:
+    - name: odc-db-creation
+      script:
+        image: ghcr.io/digitalearthpacific/datacube-ows:0.0.1-31-ga9efab4
+        resources:
+          requests:
+            memory: 500Mi
+            cpu: 1000m
+        command: [bash]
+        source: |
+          # Author: Alex Leith
+          # Date: 2024-10-04
+
+          set -xe
+
+          NEW_DB=$USER
+
+          ADMIN_USER=$USER
+          READ_USER=$READUSER
+
+          echo "Creating DB"
+          createdb $NEW_DB || true
+
+          echo "Enabling postgis extension"
+          psql -d $NEW_DB -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+
+          echo "Creating admin login user"
+          createuser $USER || true
+
+          echo "Setting admin password"
+          psql -d postgres -c "ALTER USER $USER WITH PASSWORD '$PASS'"
+
+          echo "Creating read login user"
+          createuser $READUSER || true
+
+          echo "Setting read password"
+          psql -d postgres -c "ALTER USER $READUSER WITH PASSWORD '$READPASS'"
+
+          # Give permission to the admin on the new db
+          psql -d $NEW_DB -c "GRANT $NEW_DB TO $PGUSER;"
+
+          # Grant all privileges to the admin user
+          psql -d $NEW_DB -c "GRANT ALL PRIVILEGES ON DATABASE $NEW_DB TO $USER;"
+
+          # Export ODC Connection info. PGUSER and PGPASSWORD are superadmin credentials
+          export ODC_DEFAULT_DB_URL=postgresql://$PGUSER:$PGPASSWORD@$PGHOST:5432/$NEW_DB
+          export ODC_DEFAULT_INDEX_DRIVER=postgis
+
+          # Drop the odc and ows schemas (this is testing only)
+          psql -d $NEW_DB -c "DROP SCHEMA IF EXISTS odc CASCADE;"
+          psql -d $NEW_DB -c "DROP SCHEMA IF EXISTS ows CASCADE;"
+          psql -d $NEW_DB -c "DROP SCHEMA IF EXISTS agdc CASCADE;"
+
+          # Initialise the ODC and OWS schemas
+          datacube --version
+          datacube -v system init
+          datacube spindex create 3832
+
+          # Grant `odc_admin` to the admin user
+          psql -d $NEW_DB -c "GRANT odc_admin TO $USER;"
+
+          export PYTHONPATH=/env/config
+          export DATACUBE_OWS_CFG=ows_config.pacific_ows.ows_cfg
+          export OWS_CFG_DIR=/env/config/ows_config
+          datacube-ows-update --schema --read-role $READUSER --write-role $USER
+
+          # Grant select on everything to the read user
+          psql -d $NEW_DB -c "GRANT SELECT ON ALL TABLES IN SCHEMA odc TO $READUSER;"
+          psql -d $NEW_DB -c "GRANT SELECT ON ALL TABLES IN SCHEMA ows TO $READUSER;"
+
+          # Make the new admin the owner of the new DB
+          psql -d $NEW_DB -c "ALTER DATABASE $NEW_DB OWNER TO $USER;"
+
+        env:
+          - name: PGPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: db-admin
+                key: postgres-password
+          - name: PGUSER
+            valueFrom:
+              secretKeyRef:
+                name: db-admin
+                key: postgres-username
+          - name: PGHOST
+            value: "db-endpoint.db.svc.cluster.local"
+          - name: PGDATABASE
+            value: dep
+          - name: USER
+            valueFrom:
+              secretKeyRef:
+                name: odc
+                key: username
+          - name: PASS
+            valueFrom:
+              secretKeyRef:
+                name: odc
+                key: password
+          - name: READUSER
+            valueFrom:
+              secretKeyRef:
+                name: odcread
+                key: username
+          - name: READPASS
+            valueFrom:
+              secretKeyRef:
+                name: odcread
+                key: password

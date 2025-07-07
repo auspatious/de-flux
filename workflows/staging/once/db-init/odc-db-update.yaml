@@ -1,0 +1,78 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: odc-db-creation-
+spec:
+  entrypoint: odc-db-creation
+  podGC:
+    strategy: OnWorkflowSuccess
+  templates:
+  - name: odc-db-creation
+    script:
+      image: opendatacube/ows:latest
+      resources:
+        requests:
+          memory: 500Mi
+          cpu: 1000m
+      command: [ bash ]
+      source: |
+        # Author: Alex Leith
+        # Date: 2024-10-04
+
+        set -xe
+
+        NEW_DB=$USER
+
+        ADMIN_USER=$USER
+        READ_USER=$READUSER
+
+        # Export ODC Connection info. PGUSER and PGPASSWORD are superadmin credentials
+        export ODC_DEFAULT_DB_URL=postgresql://$PGUSER:$PGPASSWORD@$PGHOST:5432/$NEW_DB
+        export ODC_DEFAULT_INDEX_DRIVER=postgis
+
+        # Initialise the ODC and OWS schemas
+        export PYTHONPATH=/env/config
+        export DATACUBE_OWS_CFG=ows_config.example.ows_cfg
+        export OWS_CFG_DIR=/env/config/ows_config
+
+        # datacube spindex create 3832
+        # datacube spindex update 3832
+        # datacube-ows-update --schema --read-role $READUSER --write-role $USER
+
+        datacube -v system init
+
+      env:
+      - name: PGPASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: db-admin
+            key: postgres-password
+      - name: PGUSER
+        valueFrom:
+          secretKeyRef:
+            name: db-admin
+            key: postgres-username
+      - name: PGHOST
+        value: "db-endpoint.db.svc.cluster.local"
+      - name: PGDATABASE
+        value: dep
+      - name: USER
+        valueFrom:
+          secretKeyRef:
+            name: odc
+            key: username
+      - name: PASS
+        valueFrom:
+          secretKeyRef:
+            name: odc
+            key: password
+      - name: READUSER
+        valueFrom:
+          secretKeyRef:
+            name: odcread
+            key: username
+      - name: READPASS
+        valueFrom:
+          secretKeyRef:
+            name: odcread
+            key: password

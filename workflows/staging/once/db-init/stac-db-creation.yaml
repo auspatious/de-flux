@@ -1,0 +1,100 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: pgstac-db-creation-
+spec:
+  entrypoint: pgstac-db-creation
+  serviceAccountName: argo-workflow-sa
+  podGC:
+    strategy: OnWorkflowSuccess
+  templates:
+    - name: pgstac-db-creation
+      script:
+        image: ghcr.io/digitalearthpacific/dep-stac:0.0.1-13-gfb90e55
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+        command: [bash]
+        source: |
+          # Author: Alex Leith
+          # Date: 2024-06-05
+
+          set -xe
+
+          # apt-get update && apt-get install -y postgresql-client
+          # pip3 install psycopg psycopg_pool
+
+          NEW_DB=$USER
+
+          ADMIN_USER=$USER
+          READ_USER=$READUSER
+
+          ADMIN_ROLE=pgstac_admin
+          READ_ROLE=pgstac_read
+
+          echo "Creating DB"
+          createdb $NEW_DB || true
+
+          echo "Enabling postgis extension"
+          psql -d $NEW_DB -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+
+          # This results three roles being created: pgstac_admin, pgstac_read, pgstac_ingest (defined as constants above)
+          echo "Migrating and creating roles"
+          pypgstac migrate --dsn "postgres://$PGUSER:$PGPASSWORD@$PGHOST/stac"
+
+          echo "Creating admin login user"
+          createuser $USER || true
+
+          echo "Resetting admin password"
+          psql -d postgres -c "ALTER USER $USER WITH PASSWORD '$PASS'"
+
+          echo "Creating read login user"
+          createuser $READUSER || true
+
+          echo "Resetting read password"
+          psql -d postgres -c "ALTER USER $READUSER WITH PASSWORD '$READPASS'"
+
+          # Grant appropriate permissions to users
+          psql -d $NEW_DB -c "GRANT $NEW_DB TO $PGUSER;"
+          psql -d $NEW_DB -c "GRANT pgstac_admin TO $USER;"
+          psql -d $NEW_DB -c "GRANT pgstac_read TO $READUSER;"
+
+          # Make the admin the owner of the DB
+          psql -d $NEW_DB -c "ALTER DATABASE $NEW_DB OWNER TO $USER;"
+
+        env:
+          - name: PGPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: db-admin
+                key: postgres-password
+          - name: PGUSER
+            valueFrom:
+              secretKeyRef:
+                name: db-admin
+                key: postgres-username
+          - name: PGHOST
+            value: "db-endpoint.db.svc.cluster.local"
+          - name: PGDATABASE
+            value: dep
+          - name: USER
+            valueFrom:
+              secretKeyRef:
+                name: stac
+                key: username
+          - name: PASS
+            valueFrom:
+              secretKeyRef:
+                name: stac
+                key: password
+          - name: READUSER
+            valueFrom:
+              secretKeyRef:
+                name: stacread
+                key: username
+          - name: READPASS
+            valueFrom:
+              secretKeyRef:
+                name: stacread
+                key: password

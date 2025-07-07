@@ -1,0 +1,63 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: daily-sentinel-2
+  namespace: argo
+spec:
+  schedule: "0 0 * * *"  # This sets the schedule to run daily at midnight
+  concurrencyPolicy: "Replace"
+  startingDeadlineSeconds: 0
+  workflowSpec:
+    entrypoint: daily-sentinel2-workflow
+    podGC:
+      strategy: OnWorkflowCompletion
+    ttlStrategy:
+      secondsAfterCompletion: 10
+      secondsAfterSuccess: 5
+      secondsAfterFailure: 600
+    parallelism: 1
+    templates:
+      - name: daily-sentinel2-workflow
+        steps:
+          - - name: generate-daterange
+              template: gen-date
+
+          - - name: index-sentinel-2
+              templateRef:
+                name: datacube-stac-indexer
+                template: stac-indexing
+              arguments:
+                parameters:
+                  - name: catalog
+                    value: "https://earth-search.aws.element84.com/v1"
+                  - name: collections
+                    value: "sentinel-2-c1-l2a"
+                  - name: bbox
+                    value: "{{ item }}"
+                  - name: datetime
+                    value: "{{ steps.generate-daterange.outputs.result }}"
+                  - name: arguments
+                    value: ""
+              withItems:
+                - "135.0,-30.0,180.0,15.0"
+                - "-180,-30.0,-120.0,15.0"
+
+      - name: gen-date
+        script:
+          image: python:3.8
+          command: [python]
+          source: |
+            import datetime
+            import json
+            import os
+            import sys
+            from typing import Any, Dict
+
+            def main() -> None:
+                today = datetime.datetime.utcnow().date()
+                five_days_ago = today - datetime.timedelta(days=5)
+                daterange = f"{five_days_ago.strftime('%Y-%m-%d')}/{today.strftime('%Y-%m-%d')}"
+                print(daterange)
+
+            if __name__ == "__main__":
+                main()
