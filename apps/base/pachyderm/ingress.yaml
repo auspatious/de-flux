@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pachyderm
+  namespace: pachyderm
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    external-dns.alpha.kubernetes.io/hostname: pach.staging.example.com
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: pach.staging.example.com
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: pachyderm-proxy
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - pach.staging.example.com
+      secretName: pachyderm-ingress
