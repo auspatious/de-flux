@@ -1,0 +1,68 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: stac-collection-sync
+  namespace: argo
+spec:
+  entrypoint: stac-collection-sync
+  serviceAccountName: argo-workflow-sa
+  podGC:
+    strategy: OnWorkflowCompletion
+  ttlStrategy:
+    secondsAfterCompletion: 300
+  arguments:
+    parameters:
+    - name: environment
+      value: "staging/production"
+  templates:
+  - name: stac-collection-sync
+    metadata:
+      labels:
+        app: "{{workflow.name}}"
+    script:
+      image: ghcr.io/digitalearthpacific/dep-stac:latest
+      resources:
+        requests:
+          memory: 100Mi
+          cpu: 100m
+      command: [ bash ]
+      source: |
+        set -xe
+
+        # Upgrade the database
+        pypgstac migrate
+
+        cd /tmp
+
+        # Clone the latest version of the repo
+        git clone https://github.com/digitalearthpacific/dep-stac.git
+
+        if [ "{{workflow.parameters.environment}}" == "staging" ]; then
+          cd dep-stac/collections/staging
+        elif [ "{{workflow.parameters.environment}}" == "production" ]; then
+          cd dep-stac/collections/production
+        else
+          echo "Invalid environment. Choose either production or staging."
+          exit 1
+        fi
+
+        ls
+
+        # For all the files in the collections folder, load them into the database
+        ls | xargs -L 1 -d '\n' \
+          pypgstac load collections --method upsert
+      env:
+      - name: PGPASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: db-admin
+            key: postgres-password
+      - name: PGUSER
+        valueFrom:
+          secretKeyRef:
+            name: db-admin
+            key: postgres-username
+      - name: PGHOST
+        value: "db-endpoint.db.svc.cluster.local"
+      - name: PGDATABASE
+        value: stac

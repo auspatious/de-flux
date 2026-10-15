@@ -1,0 +1,61 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: stac-items-ingest
+  namespace: argo
+spec:
+  entrypoint: stac-items
+  serviceAccountName: public-bucket-reader
+  podGC:
+    strategy: OnWorkflowCompletion
+  ttlStrategy:
+    secondsAfterCompletion: 300
+  arguments:
+    parameters:
+      - name: bucket
+        value: "dep-public-data"
+      - name: prefix
+        value: "dep_s2_geomad/0-3-3"
+  templates:
+    - name: stac-items
+      metadata:
+        labels:
+          app: "{{workflow.name}}"
+      inputs:
+        parameters:
+          - name: bucket
+            value: "{{ workflow.parameters.bucket }}"
+          - name: prefix
+            value: "{{ workflow.parameters.prefix }}"
+      script:
+        image: ghcr.io/digitalearthpacific/dep-stac:0.0.5-4-g752e198
+        resources:
+          requests:
+            memory: 100Mi
+            cpu: 100m
+        command: [bash]
+        source: |
+          set -xe
+
+          python ./get_insert_items.py \
+            --bucket="{{ inputs.parameters.bucket }}" \
+            --prefix="{{ inputs.parameters.prefix }}"
+
+        env:
+          - name: PGUSER
+            valueFrom:
+              secretKeyRef:
+                name: stac
+                key: username
+          - name: PGPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: stac
+                key: password
+          - name: PGHOST
+            value: "db-endpoint.db.svc.cluster.local"
+          - name: PGDATABASE
+            valueFrom:
+              secretKeyRef:
+                name: stac
+                key: username
