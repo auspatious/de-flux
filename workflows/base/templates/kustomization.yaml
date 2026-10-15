@@ -6,3 +6,6 @@ resources:
   - datacube-stac-index.yaml
   - datacube-product-sync.yaml
   - datacube-delete-product.yaml
+  - stac-collection-sync.yaml
+  - stac-delete-collection-items.yaml
+  - stac-items-ingest.yaml

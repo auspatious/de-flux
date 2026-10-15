@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: stac-delete-items
+  namespace: argo
+spec:
+  entrypoint: stac-delete-items
+  podGC:
+    strategy: OnPodSuccess
+  ttlStrategy:
+    secondsAfterCompletion: 300
+  arguments:
+    parameters:
+    - name: collection
+      value: dep_ls_wofl
+  templates:
+  - name: stac-delete-items
+    metadata:
+      labels:
+        app: argo-delete-collection
+    inputs:
+      parameters:
+      - name: collection
+        value: "{{workflow.parameters.collection}}"
+    container:
+      name: indexing-container
+      image: opendatacube/datacube-index:latest
+      command: [ "bash", "-c" ]
+      args:
+      - |
+        psql -c "SET search_path TO pgstac,public; \
+                SELECT FROM items WHERE collection='{{inputs.parameters.collection}}'; \
+                DELETE FROM items WHERE collection='{{ inputs.parameters.collection }}'; \
+                SELECT FROM collections WHERE id='{{inputs.parameters.collection}}'; \
+                DELETE FROM collections WHERE id='{{ inputs.parameters.collection }}';"
+      env:
+      # Database stuff
+      - name: PGPASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: stac
+            key: password
+      - name: PGUSER
+        valueFrom:
+          secretKeyRef:
+            name: stac
+            key: username
+      - name: PGHOST
+        value: db-endpoint.db.svc.cluster.local
+      - name: PGDATABASE
+        valueFrom:
+          secretKeyRef:
+            name: stac
+            key: username
