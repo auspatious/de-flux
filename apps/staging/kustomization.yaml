@@ -9,3 +9,4 @@ resources:
   # - stac
   # - terria
   # - tileserver
+  - pachyderm
